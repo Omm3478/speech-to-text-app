@@ -6,24 +6,31 @@ const connectDB = require("./config/db");
 
 const app = express();
 
+// 🔥 CORS setup
+app.use(cors({
+    origin: 'https://omm3478.github.io', // your frontend URL
+    methods: ['GET','POST'],
+    credentials: true
+}));
+
 // 🔥 Connect DB
 connectDB();
 
 // 🔥 Middlewares
-app.use(cors());
 app.use(express.json());
 app.use((req, res, next) => {
   console.log("👉 Request hit:", req.method, req.url);
   next();
 });
 
-// ✅ 👉 WRITE THIS LINE HERE
+// ✅ Routes
 app.use("/api", require("./routes/transcriptionRoutes"));
 
-// test route
+// Test routes
 app.get("/", (req, res) => {
   res.send("API running");
 });
+
 app.get("/all", async (req, res) => {
   try {
     const data = await Audio.find().sort({ createdAt: -1 });
@@ -35,7 +42,6 @@ app.get("/all", async (req, res) => {
 
 // 🔥 Start server
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
