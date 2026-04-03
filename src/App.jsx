@@ -18,40 +18,46 @@ function App() {
     }
   };
 
-const handleUpload = async () => {
-  if (!file) return alert("Select audio file");
+  // ✅ FIXED FUNCTION
+  const handleUpload = async () => {
+    console.log("BUTTON CLICKED");
 
-  const formData = new FormData();
-  formData.append("audio", file);
+    if (!file) return alert("Select audio file");
 
-  try {
-    const res = await axios.post(
-      "http://localhost:5000/api/upload",
-      formData
-    );
+    const formData = new FormData();
+    formData.append("audio", file);
 
-    setWords(res.data.words);
+    try {
+      console.log("Sending request...");
 
-    // 👇 WRITE YOUR CODE HERE
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0; // reset
-      audioRef.current.muted = false;
-      audioRef.current.play(); // autoplay
+      const res = await axios.post(
+        "https://speech-to-text-app-kj2t.onrender.com/api/upload",
+        formData
+      );
+
+      console.log("RESPONSE:", res.data);
+
+      setWords(res.data.words);
+
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.muted = false;
+        audioRef.current.play();
+      }
+
+    } catch (err) {
+      console.log("ERROR:", err);
     }
-
-  } catch (err) {
-    console.error(err);
-  }
-};
+  };
 
   // 🎬 Sync subtitles
   const handleTimeUpdate = () => {
-    const currentTime = audioRef.current.currentTime * 1000; // convert to ms
+    const currentTime = audioRef.current.currentTime * 1000;
 
     let text = "";
 
     for (let word of words) {
-      if (word.start <= currentTime) {
+      if (word.start * 1000 <= currentTime) { // ✅ FIXED
         text += word.text + " ";
       } else {
         break;
