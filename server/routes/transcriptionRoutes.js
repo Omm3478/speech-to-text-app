@@ -26,7 +26,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage }).single("audio");
+const upload = multer({ storage }).single("audio"); // <-- must match frontend FormData key
 
 // 🚀 Upload route
 router.post("/upload", (req, res) => {
@@ -36,27 +36,25 @@ router.post("/upload", (req, res) => {
       return res.status(500).json({ error: err.message });
     }
 
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const filePath = req.file.path;
+
     try {
-      console.log("🔥 Inside upload route");
+      console.log("🔥 Inside upload route, sending to AssemblyAI");
 
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
-
-      const filePath = req.file.path;
-
-      // ✅ Read file buffer
+      // ✅ Option 1: Send file buffer (latest SDK may support it)
       const audioData = fs.readFileSync(filePath);
 
-      // ✅ Send to AssemblyAI
       const transcript = await client.transcripts.transcribe({
-        audio: audioData,
-        speech_models: ["universal-2"], // optional
+        audio: audioData,          // buffer
+        speech_models: ["universal-2"],
         language_code: "en",
       });
 
       console.log("Transcription text:", transcript.text);
-      console.log("Words:", transcript.words);
 
       // ✅ Save to DB
       const saved = await Audio.create({
@@ -64,19 +62,19 @@ router.post("/upload", (req, res) => {
         transcription: transcript.text,
       });
 
-      // ✅ Send response
+      // ✅ Send response to frontend
       res.json({
         filename: req.file.filename,
         transcription: transcript.text,
-        words: transcript.words,
+        words: transcript.words || [], // optional
       });
 
-      // 🔥 Optional: Delete local file to save space
-      fs.unlinkSync(filePath);
-
     } catch (err) {
-      console.error("🔥 ERROR:", err);
+      console.error("🔥 AssemblyAI ERROR:", err);
       res.status(500).json({ error: err.message });
+    } finally {
+      // 🔥 Delete local file
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
   });
 });
